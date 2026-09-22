@@ -3,7 +3,9 @@ import SwiftUI
 struct HanziCarouselView: View {
     private let store = HanziStore.shared
 
-    @State private var cardIndex = 0
+    @State private var cardIndex: Int? = 0
+
+    private var currentCardIndex: Int { cardIndex ?? 0 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +19,7 @@ struct HanziCarouselView: View {
                         ForEach(Array(store.all.enumerated()), id: \.element.id) { index, item in
                             HanziCardView(
                                 item: item,
-                                isCurrent: index == cardIndex
+                                isCurrent: index == currentCardIndex
                             )
                             .frame(width: cardWidth, height: geo.size.height)
                             .id(index)
@@ -42,7 +44,7 @@ struct HanziCarouselView: View {
             Text("Hanzi")
                 .font(.largeTitle.bold())
             Spacer()
-            Text("\(cardIndex + 1)/\(store.all.count)")
+            Text("\(currentCardIndex + 1)/\(store.all.count)")
                 .font(.title3.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
@@ -57,12 +59,12 @@ struct HanziCarouselView: View {
             HStack(spacing: 8) {
                 ForEach(0..<store.all.count, id: \.self) { i in
                     Capsule()
-                        .fill(i == cardIndex ? Color.accentColor : Color.secondary.opacity(0.3))
-                        .frame(width: i == cardIndex ? 24 : 8, height: 8)
+                        .fill(i == currentCardIndex ? Color.accentColor : Color.secondary.opacity(0.3))
+                        .frame(width: i == currentCardIndex ? 24 : 8, height: 8)
                 }
             }
             .padding(.bottom, 24)
-            .animation(.snappy(duration: 0.2), value: cardIndex)
+            .animation(.snappy(duration: 0.2), value: currentCardIndex)
         } else {
             Capsule()
                 .fill(Color.accentColor)

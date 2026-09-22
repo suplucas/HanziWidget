@@ -1,1 +1,16 @@
-repos: []
+# Setup (no Mac):
+#   brew install swiftlint pre-commit
+#   pre-commit install
+#
+# Manual:
+#   swiftlint lint --fix
+#   swiftlint
+repos:
+  - repo: local
+    hooks:
+      - id: swiftlint
+        name: SwiftLint
+        entry: bash -c 'command -v swiftlint >/dev/null || { echo "swiftlint não encontrado — brew install swiftlint" >&2; exit 1; }; swiftlint lint --fix; swiftlint lint --strict'
+        language: system
+        types: [swift]
+        pass_filenames: false
