@@ -22,7 +22,6 @@ struct HanziCarouselView: View {
                                 isCurrent: index == currentCardIndex
                             )
                             .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .containerRelativeFrame(.vertical)
                             .frame(width: cardWidth)
                             .id(index)
