@@ -15,17 +15,17 @@ struct HanziCarouselView: View {
                 let cardWidth = geo.size.width * 0.85
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 16) {
+                    LazyVStack(spacing: 0) {
                         ForEach(Array(store.all.enumerated()), id: \.element.id) { index, item in
                             HanziCardView(
                                 item: item,
                                 isCurrent: index == currentCardIndex
                             )
-                            .frame(width: cardWidth, height: geo.size.height)
+                            .containerRelativeFrame(.vertical)
+                            .frame(width: cardWidth)
                             .id(index)
                         }
                     }
-                    .padding(.vertical, 8)
                     .frame(maxWidth: .infinity)
                 }
                 .scrollTargetBehavior(.paging)
@@ -80,6 +80,7 @@ private struct HanziCardView: View {
 
     @State private var stage = 0
     @State private var dragOffset: CGFloat = 0
+    @State private var isHorizontalDrag = false
 
     var body: some View {
         VStack {
@@ -149,38 +150,52 @@ private struct HanziCardView: View {
             .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
-        .padding(.vertical, 12)
+        .padding(.horizontal, 4)
         .contentShape(Rectangle())
-        .simultaneousGesture(cardDrag)
+        // Só reage a arrasto claramente horizontal; deixa o vertical pro ScrollView
+        .simultaneousGesture(cardDrag, including: .subviews)
         .onChange(of: isCurrent) { _, current in
             if current {
                 stage = 0
                 dragOffset = 0
+                isHorizontalDrag = false
             }
         }
     }
 
     private var cardDrag: some Gesture {
-        DragGesture(minimumDistance: 8)
+        DragGesture(minimumDistance: 12)
             .onChanged { value in
                 let dx = value.translation.width
                 let dy = value.translation.height
-                guard abs(dx) > abs(dy) else {
-                    dragOffset = 0
-                    return
+
+                // Descarta logo se o arrasto é (ou virou) vertical — não rouba o scroll
+                if !isHorizontalDrag {
+                    guard abs(dx) > 12, abs(dx) > abs(dy) * 1.2 else {
+                        dragOffset = 0
+                        return
+                    }
+                    isHorizontalDrag = true
                 }
+
+                guard isHorizontalDrag else { return }
                 dragOffset = dx * 0.3
             }
             .onEnded { value in
-                let dx = value.translation.width
-                let dy = value.translation.height
-                dragOffset = 0
+                defer {
+                    dragOffset = 0
+                    isHorizontalDrag = false
+                }
 
-                guard abs(dx) > abs(dy), abs(dx) > 36 else { return }
+                guard isHorizontalDrag else { return }
+
+                let dx = value.translation.width
+                guard abs(dx) > 36 else { return }
 
                 if dx < 0 {
                     if stage < 2 { stage += 1 }
