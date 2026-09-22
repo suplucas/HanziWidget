@@ -1,14 +1,10 @@
-import WidgetKit
 import SwiftUI
-
-// MARK: - Entry
+import WidgetKit
 
 struct HanziEntry: TimelineEntry {
     let date: Date
     let hanzi: HanziItem
 }
-
-// MARK: - Provider
 
 struct HanziProvider: TimelineProvider {
     func placeholder(in context: Context) -> HanziEntry {
@@ -30,80 +26,122 @@ struct HanziProvider: TimelineProvider {
     }
 }
 
-// MARK: - View
-
 struct HanziWidgetEntryView: View {
     var entry: HanziEntry
-    @Environment(\.widgetFamily) var family // <-- Adicione esta linha
+    @Environment(\.widgetFamily) private var family
 
     var body: some View {
         switch family {
         case .accessoryRectangular:
-            // Layout para o widget retangular da tela de bloqueio
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.hanzi.character)
+            lockscreenRectangular
+        case .accessoryCircular:
+            lockscreenCircular
+        case .accessoryInline:
+            Text("\(entry.hanzi.character) · \(entry.hanzi.pinyin)")
+                .font(.caption)
+                .widgetAccentable()
+        case .systemMedium:
+            systemMedium
+        default:
+            systemSmall
+        }
+    }
+
+    private var systemSmall: some View {
+        VStack(spacing: 6) {
+            Text(entry.hanzi.character)
+                .font(.system(size: 52, weight: .bold))
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
+                .widgetAccentable()
+            Text(entry.hanzi.pinyin)
+                .font(.headline)
+                .foregroundStyle(.blue)
+            Text(entry.hanzi.meaning)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var systemMedium: some View {
+        HStack(spacing: 16) {
+            Text(entry.hanzi.character)
+                .font(.system(size: 56, weight: .bold))
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
+                .widgetAccentable()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(entry.hanzi.pinyin)
                     .font(.headline)
-                    .fontWeight(.bold)
+                    .foregroundStyle(.blue)
+                Text(entry.hanzi.meaning)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(4)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var lockscreenRectangular: some View {
+        HStack(spacing: 8) {
+            Text(entry.hanzi.character)
+                .font(.headline.weight(.bold))
+                .widgetAccentable()
+            VStack(alignment: .leading, spacing: 1) {
                 Text(entry.hanzi.pinyin)
                     .font(.caption)
                 Text(entry.hanzi.meaning)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-            }
-        case .accessoryCircular:
-            // Layout para o widget circular
-            Gauge(value: 0.7) { // Exemplo de um medidor, pode ser um ícone ou texto
-                Text(entry.hanzi.character)
-                    .font(.title2)
-            }
-            .gaugeStyle(.accessoryCircularCapacity)
-        case .accessoryInline:
-            // Layout para o widget de uma linha
-            Text("\(entry.hanzi.character) \(entry.hanzi.pinyin)")
-        default:
-            // Layout original para a tela inicial
-            VStack(spacing: 6) {
-                Text(entry.hanzi.character)
-                    .font(.system(size: 56, weight: .bold))
-                    .minimumScaleFactor(0.5)
                     .lineLimit(1)
-                Text(entry.hanzi.pinyin)
-                    .font(.headline)
-                    .foregroundStyle(.blue)
-                Text(entry.hanzi.meaning)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
             }
-            .padding()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var lockscreenCircular: some View {
+        Gauge(value: 1.0) {
+            Text(entry.hanzi.character)
+                .font(.title2.weight(.bold))
+                .widgetAccentable()
+        } currentValueLabel: {
+            Text(entry.hanzi.pinyin)
+                .font(.system(size: 8, weight: .medium))
+                .minimumScaleFactor(0.5)
+        }
+        .gaugeStyle(.accessoryCircularCapacity)
+        .accessibilityLabel("\(entry.hanzi.character), \(entry.hanzi.pinyin)")
     }
 }
 
-// MARK: - Widget
-
 struct HanziWidgetExtension: Widget {
-    let kind: String = "HanziWidgetExtension"
+    let kind = "HanziWidgetExtension"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: HanziProvider()) { entry in
-            // A view do seu widget agora é envolvida pelo containerBackground
             HanziWidgetEntryView(entry: entry)
                 .containerBackground(for: .widget) {
-                    // Define o fundo como o padrão do sistema para widgets.
-                    // Isso resolve o erro e se adapta a todos os tamanhos (Tela de Início e Bloqueio).
                     Color.clear
                 }
         }
         .configurationDisplayName("Hanzi do Dia")
-        .description("Mostra um hanzi diferente a cada dia.")
+        .description("Um hanzi novo todos os dias na sua tela.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
             .accessoryRectangular,
             .accessoryCircular,
-            .accessoryInline
+            .accessoryInline,
         ])
     }
 }
