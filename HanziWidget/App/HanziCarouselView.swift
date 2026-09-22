@@ -11,45 +11,30 @@ struct HanziCarouselView: View {
 
             GeometryReader { geo in
                 let cardWidth = geo.size.width * 0.85
-                let spacing = (geo.size.width - cardWidth) / 2
 
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: spacing) {
-                            ForEach(Array(store.all.enumerated()), id: \.element.id) { index, item in
-                                HanziCardView(
-                                    item: item,
-                                    isCurrent: index == cardIndex,
-                                    onSwipeLeftAtEnd: { moveCard(+1, proxy: proxy) },
-                                    onSwipeRightAtStart: { moveCard(-1, proxy: proxy) }
-                                )
-                                .frame(width: cardWidth)
-                                .id(index)
-                            }
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        ForEach(Array(store.all.enumerated()), id: \.element.id) { index, item in
+                            HanziCardView(
+                                item: item,
+                                isCurrent: index == cardIndex
+                            )
+                            .frame(width: cardWidth, height: geo.size.height)
+                            .id(index)
                         }
-                        .padding(.horizontal, spacing)
                     }
-                    .scrollTargetBehavior(.paging)
-                    .scrollTargetLayout()
-                    .onAppear {
-                        proxy.scrollTo(cardIndex, anchor: .center)
-                    }
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
                 }
+                .scrollTargetBehavior(.paging)
+                .scrollTargetLayout()
+                .scrollPosition(id: $cardIndex, anchor: .center)
             }
             .frame(maxHeight: .infinity)
 
             dots
         }
         .background(Color(.systemBackground))
-    }
-
-    private func moveCard(_ delta: Int, proxy: ScrollViewProxy) {
-        let newIndex = cardIndex + delta
-        guard store.all.indices.contains(newIndex) else { return }
-        withAnimation(.snappy(duration: 0.3)) {
-            cardIndex = newIndex
-            proxy.scrollTo(newIndex, anchor: .center)
-        }
     }
 
     private var header: some View {
@@ -66,8 +51,8 @@ struct HanziCarouselView: View {
         .padding(.bottom, 8)
     }
 
+    @ViewBuilder
     private var dots: some View {
-        // Evita centenas de dots com datasets grandes
         if store.all.count <= 12 {
             HStack(spacing: 8) {
                 ForEach(0..<store.all.count, id: \.self) { i in
@@ -77,7 +62,7 @@ struct HanziCarouselView: View {
                 }
             }
             .padding(.bottom, 24)
-            .animation(.snappy(duration: 0.25), value: cardIndex)
+            .animation(.snappy(duration: 0.2), value: cardIndex)
         } else {
             Capsule()
                 .fill(Color.accentColor)
@@ -90,8 +75,6 @@ struct HanziCarouselView: View {
 private struct HanziCardView: View {
     let item: HanziItem
     let isCurrent: Bool
-    let onSwipeLeftAtEnd: () -> Void
-    let onSwipeRightAtStart: () -> Void
 
     @State private var stage = 0
     @State private var dragOffset: CGFloat = 0
@@ -149,7 +132,8 @@ private struct HanziCardView: View {
             .padding(.vertical, 32)
             .padding(.horizontal, 16)
             .offset(x: dragOffset)
-            .animation(.snappy(duration: 0.3), value: stage)
+            .animation(.snappy(duration: 0.12), value: stage)
+            .animation(.snappy(duration: 0.12), value: dragOffset)
 
             Spacer(minLength: 0)
 
@@ -169,7 +153,7 @@ private struct HanziCardView: View {
         )
         .padding(.vertical, 12)
         .contentShape(Rectangle())
-        .gesture(cardDrag)
+        .simultaneousGesture(cardDrag)
         .onChange(of: isCurrent) { _, current in
             if current {
                 stage = 0
@@ -181,26 +165,25 @@ private struct HanziCardView: View {
     private var cardDrag: some Gesture {
         DragGesture(minimumDistance: 8)
             .onChanged { value in
-                dragOffset = value.translation.width * 0.3
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > abs(dy) else {
+                    dragOffset = 0
+                    return
+                }
+                dragOffset = dx * 0.3
             }
             .onEnded { value in
-                let horizontal = value.translation.width
+                let dx = value.translation.width
+                let dy = value.translation.height
                 dragOffset = 0
 
-                guard abs(horizontal) > 40 else { return }
+                guard abs(dx) > abs(dy), abs(dx) > 36 else { return }
 
-                if horizontal < 0 {
-                    if stage < 2 {
-                        stage += 1
-                    } else {
-                        onSwipeLeftAtEnd()
-                    }
+                if dx < 0 {
+                    if stage < 2 { stage += 1 }
                 } else {
-                    if stage > 0 {
-                        stage -= 1
-                    } else {
-                        onSwipeRightAtStart()
-                    }
+                    if stage > 0 { stage -= 1 }
                 }
             }
     }

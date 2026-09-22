@@ -14,7 +14,7 @@ struct HanziProvider: TimelineProvider {
     func placeholder(in context: Context) -> HanziEntry {
         HanziEntry(
             date: Date(),
-            hanzi: HanziItem(character: "好", pinyin: "hǎo", meaning: "Bom")
+            hanzi: HanziItem(id: 0, character: "好", pinyin: "hǎo", pinyinNum: "hao3", meaning: "Bom")
         )
     }
 
