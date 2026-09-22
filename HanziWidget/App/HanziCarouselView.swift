@@ -21,6 +21,9 @@ struct HanziCarouselView: View {
                                 item: item,
                                 isCurrent: index == currentCardIndex
                             )
+                            // Página = viewport (paging ok); padding cria o gap visual entre cards
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .containerRelativeFrame(.vertical)
                             .frame(width: cardWidth)
                             .id(index)
@@ -157,8 +160,7 @@ private struct HanziCardView: View {
         )
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
-        // Só reage a arrasto claramente horizontal; deixa o vertical pro ScrollView
-        .simultaneousGesture(cardDrag, including: .subviews)
+        .simultaneousGesture(cardDrag)
         .onChange(of: isCurrent) { _, current in
             if current {
                 stage = 0
@@ -169,14 +171,14 @@ private struct HanziCardView: View {
     }
 
     private var cardDrag: some Gesture {
-        DragGesture(minimumDistance: 12)
+        DragGesture(minimumDistance: 8)
             .onChanged { value in
                 let dx = value.translation.width
                 let dy = value.translation.height
 
-                // Descarta logo se o arrasto é (ou virou) vertical — não rouba o scroll
                 if !isHorizontalDrag {
-                    guard abs(dx) > 12, abs(dx) > abs(dy) * 1.2 else {
+                    // Engaja só se for claramente horizontal (não rouba o scroll vertical)
+                    guard abs(dx) > 8, abs(dx) > abs(dy) else {
                         dragOffset = 0
                         return
                     }
